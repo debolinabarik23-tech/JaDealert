@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JaDealert Cyber Guard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#010a13;
+  --bg2:#040f1c;
+  --bg3:#071828;
+  --panel:#091520;
+  --accent:#00ffe5;
+  --accent2:#ff2d6b;
+  --accent3:#ffe500;
+  --accent4:#7b2fff;
+  --safe:#00ff9d;
+  --warn:#ff9d00;
+  --danger:#ff2d6b;
+  --text:#c8e8f0;
+  --text2:#6fa8c0;
+  --glow:0 0 18px rgba(0,255,229,0.45);
+  --glow2:0 0 18px rgba(255,45,107,0.45);
+  --glow3:0 0 18px rgba(255,229,0,0.35);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+
+body{
+  font-family:'Exo 2',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  position:relative;
+}
+
+/* Animated background grid */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,255,229,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,229,0.03) 1px, transparent 1px);
+  background-size:40px 40px;
+  animation:gridMove 20s linear infinite;
+  pointer-events:none;z-index:0;
+}
+
+/* Moving scan line */
+body::after{
+  content:'';
+  position:fixed;
+  left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  opacity:0.25;
+  animation:scanLine 6s linear infinite;
+  pointer-events:none;z-index:9999;
+}
+
+@keyframes gridMove{to{background-position:40px 40px}}
+@keyframes scanLine{0%{top:-2px}100%{top:100%}}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  position:fixed;left:0;top:0;width:220px;height:100%;
+  background:linear-gradient(180deg,#020d18 0%,#010812 100%);
+  border-right:1px solid rgba(0,255,229,0.12);
+  z-index:100;display:flex;flex-direction:column;
+  padding:0;
+}
+
+.logo-wrap{
+  padding:22px 20px 18px;
+  border-bottom:1px solid rgba(0,255,229,0.1);
+  position:relative;overflow:hidden;
+}
+.logo-wrap::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  animation:linePulse 3s ease-in-out infinite;
+}
+@keyframes linePulse{0%,100%{opacity:0.3}50%{opacity:1}}
+
+.logo-icon{font-size:11px;font-family:'Share Tech Mono';color:var(--accent);letter-spacing:2px;margin-bottom:4px}
+.logo-main{font-family:'Orbitron',sans-serif;font-weight:900;font-size:20px;
+  background:linear-gradient(135deg,var(--accent),#00aaff);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:2px;line-height:1;}
+.logo-sub{font-family:'Share Tech Mono';font-size:10px;color:var(--text2);letter-spacing:3px;margin-top:3px}
+
+/* Status badge */
+.status-badge{
+  margin:14px 20px;padding:6px 10px;
+  background:rgba(0,255,157,0.07);
+  border:1px solid rgba(0,255,157,0.2);
+  border-radius:6px;
+  font-family:'Share Tech Mono';font-size:10px;
+  color:var(--safe);letter-spacing:1px;
+  display:flex;align-items:center;gap:7px;
+}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--safe);
+  box-shadow:0 0 8px var(--safe);animation:pulse2 1.5s ease-in-out infinite;}
+@keyframes pulse2{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.3)}}
+
+.nav{flex:1;padding:8px 12px;overflow-y:auto}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 12px;margin:3px 0;
+  border-radius:8px;cursor:pointer;
+  font-family:'Exo 2';font-size:13px;font-weight:600;
+  color:var(--text2);letter-spacing:0.5px;
+  transition:all 0.25s;
+  border:1px solid transparent;
+  position:relative;overflow:hidden;
+  text-transform:uppercase;
+}
+.nav-item::before{
+  content:'';position:absolute;left:-100%;top:0;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(0,255,229,0.05),transparent);
+  transition:left 0.4s;
+}
+.nav-item:hover::before,.nav-item.active::before{left:100%}
+.nav-item:hover{color:var(--accent);border-color:rgba(0,255,229,0.15);background:rgba(0,255,229,0.04)}
+.nav-item.active{color:var(--accent);background:rgba(0,255,229,0.08);border-color:rgba(0,255,229,0.25);box-shadow:inset 2px 0 0 var(--accent)}
+.nav-icon{font-size:16px;min-width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;
+  padding:1px 6px;border-radius:10px;font-family:'Share Tech Mono';display:none;}
+.nav-badge.show{display:block}
+
+/* Threat meter */
+.threat-meter{
+  padding:14px 18px;
+  border-top:1px solid rgba(0,255,229,0.08);
+}
+.threat-label{font-family:'Share Tech Mono';font-size:9px;color:var(--text2);letter-spacing:2px;margin-bottom:6px}
+.threat-bar{height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden}
+.threat-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--safe),var(--warn),var(--danger));
+  border-radius:3px;transition:width 0.5s ease;position:relative;}
+.threat-fill::after{content:'';position:absolute;right:0;top:-2px;bottom:-2px;width:3px;
+  background:#fff;border-radius:2px;box-shadow:0 0 8px #fff;}
+.threat-score{font-family:'Orbitron';font-size:22px;font-weight:700;color:var(--accent);margin-top:6px}
+.threat-score span{font-size:11px;color:var(--text2);font-family:'Share Tech Mono'}
+
+/* ── MAIN ── */
+.main{margin-left:220px;height:100vh;overflow-y:auto;padding:24px;position:relative;z-index:1;flex:1}
+
+/* Page transitions */
+.page{display:none;animation:fadeIn 0.35s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Page header */
+.page-header{margin-bottom:22px;display:flex;align-items:center;justify-content:space-between}
+.page-title{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:700;
+  background:linear-gradient(135deg,#fff,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:3px;text-transform:uppercase;}
+.page-subtitle{font-family:'Share Tech Mono';font-size:10px;color:var(--text2);letter-spacing:2px;margin-top:2px}
+.page-time{font-family:'Share Tech Mono';font-size:11px;color:var(--accent);opacity:0.7}
+
+/* ── CARDS ── */
+.cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{
+  background:var(--panel);
+  border:1px solid rgba(0,255,229,0.1);
+  border-radius:12px;padding:16px;
+  position:relative;overflow:hidden;
+  transition:all 0.3s;cursor:default;
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  border-radius:2px 2px 0 0;
+}
+.stat-card.c-safe::before{background:linear-gradient(90deg,var(--safe),transparent)}
+.stat-card.c-warn::before{background:linear-gradient(90deg,var(--warn),transparent)}
+.stat-card.c-danger::before{background:linear-gradient(90deg,var(--danger),transparent)}
+.stat-card.c-accent::before{background:linear-gradient(90deg,var(--accent4),transparent)}
+.stat-card:hover{transform:translateY(-2px);border-color:rgba(0,255,229,0.2);box-shadow:0 8px 30px rgba(0,0,0,0.4)}
+.stat-label{font-family:'Share Tech Mono';font-size:9px;letter-spacing:2px;color:var(--text2);text-transform:uppercase}
+.stat-val{font-family:'Orbitron';font-size:30px;font-weight:900;margin:6px 0 2px;line-height:1}
+.stat-val.c-safe{color:var(--safe);text-shadow:0 0 20px rgba(0,255,157,0.4)}
+.stat-val.c-warn{color:var(--warn);text-shadow:0 0 20px rgba(255,157,0,0.4)}
+.stat-val.c-danger{color:var(--danger);text-shadow:0 0 20px rgba(255,45,107,0.4)}
+.stat-val.c-accent{color:var(--accent);text-shadow:0 0 20px rgba(0,255,229,0.4)}
+.stat-note{font-size:10px;color:var(--text2)}
+.stat-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:0.12}
+
+/* ── PANELS ── */
+.panel{background:var(--panel);border:1px solid rgba(0,255,229,0.1);border-radius:12px;padding:18px;margin-bottom:16px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(0,255,229,0.08)}
+.panel-title{font-family:'Orbitron';font-size:12px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase}
+.panel-badge{font-family:'Share Tech Mono';font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(0,255,229,0.08);color:var(--accent);border:1px solid rgba(0,255,229,0.15)}
+
+/* ── INPUTS ── */
+.input-group{margin-bottom:14px;position:relative}
+.input-label{font-family:'Share Tech Mono';font-size:10px;letter-spacing:2px;color:var(--text2);margin-bottom:5px;display:block;text-transform:uppercase}
+input[type=text],textarea{
+  width:100%;padding:11px 14px;
+  background:rgba(0,15,28,0.8);
+  color:var(--text);
+  border:1px solid rgba(0,255,229,0.15);
+  border-radius:8px;
+  font-family:'Exo 2';font-size:13px;
+  outline:none;transition:all 0.2s;
+  resize:none;
+}
+input[type=text]:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,255,229,0.08),var(--glow)}
+input[type=text]::placeholder,textarea::placeholder{color:rgba(108,168,192,0.4)}
+
+/* ── BUTTONS ── */
+.btn{
+  padding:10px 20px;border:none;border-radius:8px;cursor:pointer;
+  font-family:'Orbitron';font-size:11px;font-weight:700;letter-spacing:2px;
+  text-transform:uppercase;transition:all 0.2s;position:relative;overflow:hidden;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#00c6e6,#0090c2);
+  color:#000;box-shadow:0 4px 15px rgba(0,198,230,0.3);
+}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(0,198,230,0.45)}
+.btn-danger{background:linear-gradient(135deg,#ff2d6b,#cc0040);color:#fff;box-shadow:0 4px 15px rgba(255,45,107,0.3)}
+.btn-danger:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(255,45,107,0.5)}
+.btn-warn{background:linear-gradient(135deg,#ff9d00,#cc7000);color:#000;box-shadow:0 4px 15px rgba(255,157,0,0.3)}
+.btn-safe{background:linear-gradient(135deg,#00ff9d,#00cc78);color:#000;box-shadow:0 4px 15px rgba(0,255,157,0.3)}
+.btn-sm{padding:7px 14px;font-size:10px}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+
+/* Result banner */
+.result-banner{
+  padding:12px 16px;border-radius:8px;margin-top:10px;
+  font-family:'Share Tech Mono';font-size:13px;letter-spacing:1px;
+  display:flex;align-items:center;gap:10px;
+  animation:fadeIn 0.3s ease;
+}
+.result-banner.safe{background:rgba(0,255,157,0.08);border:1px solid rgba(0,255,157,0.3);color:var(--safe)}
+.result-banner.warn{background:rgba(255,157,0,0.08);border:1px solid rgba(255,157,0,0.3);color:var(--warn)}
+.result-banner.danger{background:rgba(255,45,107,0.1);border:1px solid rgba(255,45,107,0.4);color:var(--danger)}
+
+/* Alerts list */
+.alert-item{
+  padding:10px 14px;border-radius:8px;margin-bottom:6px;
+  background:rgba(0,15,28,0.7);border:1px solid rgba(255,255,255,0.06);
+  display:flex;align-items:flex-start;gap:12px;
+  animation:slideIn 0.3s ease;
+  font-size:13px;
+}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.alert-item.safe-item{border-left:2px solid var(--safe)}
+.alert-item.warn-item{border-left:2px solid var(--warn)}
+.alert-item.danger-item{border-left:2px solid var(--danger)}
+.alert-time{font-family:'Share Tech Mono';font-size:10px;color:var(--text2);min-width:60px;margin-top:1px}
+.alert-type{font-family:'Share Tech Mono';font-size:10px;padding:1px 7px;border-radius:4px;margin-top:1px;white-space:nowrap}
+.alert-type.t-safe{background:rgba(0,255,157,0.12);color:var(--safe)}
+.alert-type.t-warn{background:rgba(255,157,0,0.12);color:var(--warn)}
+.alert-type.t-danger{background:rgba(255,45,107,0.12);color:var(--danger)}
+.alert-msg{flex:1;line-height:1.4}
+
+/* Voice page */
+.voice-viz{
+  height:80px;background:rgba(0,15,28,0.7);border:1px solid rgba(0,255,229,0.1);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;gap:3px;
+  padding:0 16px;margin:14px 0;overflow:hidden;
+}
+.bar{width:4px;height:8px;background:var(--accent);border-radius:2px;
+  animation:barAnim 0.8s ease-in-out infinite;opacity:0.3;}
+@keyframes barAnim{0%,100%{height:6px;opacity:0.3}50%{height:40px;opacity:1}}
+.voice-active .bar{opacity:1}
+.voice-transcript{
+  background:rgba(0,15,28,0.7);border:1px solid rgba(0,255,229,0.1);border-radius:8px;
+  padding:14px;min-height:80px;font-family:'Share Tech Mono';font-size:12px;color:var(--text2);
+  line-height:1.6;
+}
+
+/* Hygiene grid */
+.hygiene-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hygiene-card{
+  background:rgba(0,15,28,0.7);border-radius:10px;padding:14px;
+  border:1px solid rgba(0,255,229,0.08);
+}
+.hygiene-card.do-card{border-left:3px solid var(--safe)}
+.hygiene-card.dont-card{border-left:3px solid var(--danger)}
+.hygiene-card h4{font-family:'Orbitron';font-size:11px;letter-spacing:2px;margin-bottom:10px}
+.hygiene-card.do-card h4{color:var(--safe)}
+.hygiene-card.dont-card h4{color:var(--danger)}
+.hygiene-card li{font-size:12px;margin-bottom:7px;list-style:none;padding-left:16px;position:relative;line-height:1.4;color:var(--text2)}
+.hygiene-card.do-card li::before{content:'✓';position:absolute;left:0;color:var(--safe)}
+.hygiene-card.dont-card li::before{content:'✕';position:absolute;left:0;color:var(--danger)}
+
+/* Remedy */
+.remedy-card{
+  background:rgba(255,45,107,0.05);border:1px solid rgba(255,45,107,0.2);border-radius:10px;padding:16px;
+}
+.remedy-card h4{font-family:'Orbitron';font-size:12px;color:var(--danger);letter-spacing:1px;margin-bottom:10px}
+.remedy-step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.remedy-num{
+  width:26px;height:26px;border-radius:50%;background:rgba(255,45,107,0.2);
+  border:1px solid rgba(255,45,107,0.4);color:var(--danger);
+  font-family:'Orbitron';font-size:11px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.remedy-text{font-size:13px;color:var(--text);line-height:1.5;padding-top:3px}
+.no-remedy{font-family:'Share Tech Mono';font-size:12px;color:var(--text2);padding:20px;text-align:center}
+
+/* ── KEYBOARD MONITOR OVERLAY ── */
+#km-overlay{
+  position:fixed;inset:0;z-index:9998;background:rgba(1,10,19,0.92);
+  backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  animation:overlayIn 0.25s ease;display:none;
+}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+#km-box{
+  background:var(--bg2);border:1px solid var(--accent2);border-radius:16px;
+  max-width:480px;width:90%;padding:28px;
+  box-shadow:0 0 60px rgba(255,45,107,0.3),0 30px 80px rgba(0,0,0,0.7);
+  animation:boxIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes boxIn{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
+#km-box .km-icon{font-size:40px;text-align:center;margin-bottom:12px}
+#km-box h2{font-family:'Orbitron';font-size:17px;color:var(--danger);text-align:center;letter-spacing:2px;margin-bottom:8px}
+#km-box p{font-size:13px;color:var(--text2);text-align:center;line-height:1.6;margin-bottom:6px}
+#km-detected{font-family:'Share Tech Mono';font-size:11px;color:var(--warn);text-align:center;
+  background:rgba(255,157,0,0.08);border:1px solid rgba(255,157,0,0.2);border-radius:6px;
+  padding:7px;margin:10px 0;}
+#km-box .btn-row{justify-content:center;margin-top:16px}
+
+/* ── TYPING MONITOR BAR ── */
+#typing-monitor-bar{
+  position:fixed;bottom:0;left:220px;right:0;
+  background:linear-gradient(135deg,rgba(4,15,28,0.97),rgba(1,8,18,0.97));
+  border-top:1px solid rgba(0,255,229,0.1);
+  padding:7px 20px;z-index:200;
+  display:flex;align-items:center;gap:14px;
+  font-family:'Share Tech Mono';font-size:11px;
+}
+.tm-dot{width:8px;height:8px;border-radius:50%;background:var(--safe);
+  box-shadow:0 0 8px var(--safe);flex-shrink:0;transition:all 0.3s;}
+.tm-dot.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.tm-dot.danger{background:var(--danger);box-shadow:0 0 8px var(--danger);animation:dangerPulse 0.5s ease-in-out infinite}
+@keyframes dangerPulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.tm-label{color:var(--text2);letter-spacing:1px;}
+.tm-status{color:var(--safe);transition:color 0.3s;}
+.tm-buffer{margin-left:auto;color:rgba(0,255,229,0.3);font-size:10px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Network checker */
+.net-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.net-item{background:rgba(0,15,28,0.7);border:1px solid rgba(0,255,229,0.08);border-radius:10px;padding:14px;text-align:center}
+.net-item-label{font-family:'Share Tech Mono';font-size:9px;color:var(--text2);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
+.net-item-val{font-family:'Orbitron';font-size:18px;font-weight:700;color:var(--accent)}
+
+/* Password checker */
+.pw-strength-bar{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;margin-top:8px;overflow:hidden}
+.pw-strength-fill{height:100%;border-radius:3px;transition:all 0.4s ease;width:0}
+.pw-tips{margin-top:10px}
+.pw-tip{font-size:12px;padding:3px 0;font-family:'Share Tech Mono';display:flex;align-items:center;gap:7px}
+.pw-tip.ok{color:var(--safe)}.pw-tip.fail{color:rgba(255,255,255,0.3)}
+
+/* Email checker grid */
+.email-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{padding:4px 10px;border-radius:12px;font-family:'Share Tech Mono';font-size:10px;letter-spacing:1px;border:1px solid}
+.tag.red{background:rgba(255,45,107,0.1);border-color:rgba(255,45,107,0.3);color:var(--danger)}
+.tag.yellow{background:rgba(255,229,0,0.08);border-color:rgba(255,229,0,0.2);color:var(--accent3)}
+.tag.green{background:rgba(0,255,157,0.08);border-color:rgba(0,255,157,0.2);color:var(--safe)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,255,229,0.2);border-radius:3px}
+
+/* Responsive */
+@media(max-width:700px){
+  .sidebar{width:56px}
+  .logo-wrap,.status-badge,.threat-meter{display:none}
+  .nav-item span{display:none}
+  .main{margin-left:56px}
+  #typing-monitor-bar{left:56px}
+  .hygiene-grid{grid-template-columns:1fr}
+  .net-grid{grid-template-columns:1fr 1fr}
+}
+
+/* Mini line chart */
+.sparkline{height:40px;margin-top:8px}
+.chart-wrap{background:rgba(0,15,28,0.5);border-radius:6px;padding:6px;margin-top:8px}
+
+/* Particle canvas */
+#particle-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.4}
+
+/* Activity pulse */
+.activity-ring{
+  width:56px;height:56px;border-radius:50%;
+  border:2px solid rgba(0,255,229,0.2);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+}
+.activity-ring::before{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:1px solid var(--accent);opacity:0.3;
+  animation:ringPulse 2s ease-in-out infinite;
+}
+@keyframes ringPulse{0%,100%{transform:scale(1);opacity:0.3}50%{transform:scale(1.1);opacity:0.6}}
+
+/* Timeline */
+.timeline-wrap{max-height:300px;overflow-y:auto}
+.empty-state{padding:30px;text-align:center;font-family:'Share Tech Mono';font-size:12px;color:rgba(106,168,192,0.4);letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<canvas id="particle-bg"></canvas>
+
+<!-- Keyboard Overlay Warning -->
+<div id="km-overlay">
+  <div id="km-box">
+    <div class="km-icon">🔐</div>
+    <h2>SENSITIVE DATA DETECTED</h2>
+    <p>Your keyboard input contains potentially sensitive information that could expose personal data.</p>
+    <div id="km-detected">Detected keyword: <span id="km-keyword">—</span></div>
+    <p style="font-size:12px;margin-top:4px">Do you want to continue typing this sensitive information?</p>
+    <div class="btn-row">
+      <button class="btn btn-danger btn-sm" onclick="overrideSensitive()">⚠️ Override & Continue</button>
+      <button class="btn btn-safe btn-sm" onclick="dismissWarning()">✓ Clear & Stay Safe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-icon">▸ SYSTEM ACTIVE</div>
+    <div class="logo-main">JaDealert</div>
+    <div class="logo-sub">CYBER GUARD v2.0</div>
+  </div>
+  <div class="status-badge"><div class="status-dot"></div><span>ALL SYSTEMS NOMINAL</span></div>
+  <div class="nav">
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">⬡</span><span>Dashboard</span></div>
+    <div class="nav-item" onclick="showPage('scanner',this)"><span class="nav-icon">⌖</span><span>Scan Center</span><div class="nav-badge" id="scan-badge">!</div></div>
+    <div class="nav-item" onclick="showPage('keyboard',this)"><span class="nav-icon">⌨</span><span>Key Monitor</span></div>
+    <div class="nav-item" onclick="showPage('voice',this)"><span class="nav-icon">◉</span><span>Voice Monitor</span></div>
+    <div class="nav-item" onclick="showPage('password',this)"><span class="nav-icon">⬡</span><span>Password Lab</span></div>
+    <div class="nav-item" onclick="showPage('email',this)"><span class="nav-icon">✉</span><span>Email Analyzer</span></div>
+    <div class="nav-item" onclick="showPage('remedy',this)"><span class="nav-icon">⚕</span><span>Remedy Engine</span><div class="nav-badge" id="rem-badge">!</div></div>
+    <div class="nav-item" onclick="showPage('hygiene',this)"><span class="nav-icon">◈</span><span>Cyber Hygiene</span></div>
+  </div>
+  <div class="threat-meter">
+    <div class="threat-label">THREAT LEVEL</div>
+    <div class="threat-bar"><div class="threat-fill" id="threat-fill"></div></div>
+    <div class="threat-score" id="threat-score-val">100 <span>/ 100</span></div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="page active">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Command Center</div>
+        <div class="page-subtitle">REAL-TIME SECURITY OVERVIEW</div>
+      </div>
+      <div class="page-time" id="live-time">—</div>
+    </div>
+    <div class="cards-row">
+      <div class="stat-card c-safe"><div class="stat-label">Security Score</div><div class="stat-val c-safe" id="score">100</div><div class="stat-note">All systems green</div><div class="stat-icon">🛡</div></div>
+      <div class="stat-card c-warn"><div class="stat-label">Suspicious</div><div class="stat-val c-warn" id="sus">0</div><div class="stat-note">Events detected</div><div class="stat-icon">⚠</div></div>
+      <div class="stat-card c-danger"><div class="stat-label">Danger Events</div><div class="stat-val c-danger" id="dan">0</div><div class="stat-note">Critical alerts</div><div class="stat-icon">🔴</div></div>
+      <div class="stat-card c-accent"><div class="stat-label">Scans Run</div><div class="stat-val c-accent" id="scans">0</div><div class="stat-note">Total operations</div><div class="stat-icon">⌖</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Alert Timeline</div>
+        <div class="panel-badge" id="alert-count">0 events</div>
+      </div>
+      <div class="timeline-wrap" id="alerts">
+        <div class="empty-state">▸ NO ALERTS RECORDED — SYSTEM SECURE</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Typing Monitor</div><div class="panel-badge" id="km-panel-status">ACTIVE</div></div>
+        <p style="font-size:12px;color:var(--text2);line-height:1.6">Global keyboard monitoring is active across all input fields. Sensitive patterns are intercepted in real-time.</p>
+        <div style="margin-top:10px;font-family:'Share Tech Mono';font-size:11px;color:var(--accent)">Monitoring: OTP · PASSWORD · CVV · CARD · PIN · SSN · AADHAR</div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Quick Actions</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="showPage('scanner',document.querySelectorAll('.nav-item')[1])">Scan URL</button>
+          <button class="btn btn-warn btn-sm" onclick="showPage('password',document.querySelectorAll('.nav-item')[4])">Check Password</button>
+          <button class="btn btn-safe btn-sm" onclick="clearAlerts()">Clear Alerts</button>
+          <button class="btn btn-danger btn-sm" onclick="showPage('remedy',document.querySelectorAll('.nav-item')[6])">View Remedy</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCAN CENTER -->
+  <div id="scanner" class="page">
+    <div class="page-header"><div><div class="page-title">Scan Center</div><div class="page-subtitle">URL & CONTENT THREAT ANALYSIS</div></div></div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">URL Scanner</div><div class="panel-badge">HEURISTIC ENGINE</div></div>
+      <div class="input-group"><label class="input-label">Target URL</label><input type="text" id="url" placeholder="https://example.com/verify-account..."></div>
+      <button class="btn btn-primary" onclick="scanURL()">⌖ Analyze URL</button>
+      <div id="urlRes"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Content Scanner</div><div class="panel-badge">NLP PATTERN MATCH</div></div>
+      <div class="input-group"><label class="input-label">Paste Content (Email / SMS / Document)</label>
+        <textarea id="content" rows="6" placeholder="Paste any suspicious email, SMS, or document content here..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="scanContent()">⌖ Analyze Content</button>
+      <div id="contentRes"></div>
+    </div>
+  </div>
+
+  <!-- KEYBOARD MONITOR PAGE -->
+  <div id="keyboard" class="page">
+    <div class="page-header"><div><div class="page-title">Keyboard Monitor</div><div class="page-subtitle">REAL-TIME INPUT SURVEILLANCE</div></div></div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">How It Works</div></div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7">JaDealert monitors every keystroke you type <strong style="color:var(--accent)">anywhere on this page</strong> — in any input, textarea, or search field. When you begin typing a sensitive keyword (like <em>otp</em>, <em>password</em>, <em>cvv</em>, <em>card number</em>, <em>pin</em>, <em>aadhar</em>), a warning overlay immediately appears.</p>
+      <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-top:8px">You can choose to <strong style="color:var(--danger)">Override</strong> if you're sure it's safe, or <strong style="color:var(--safe)">Clear & Stay Safe</strong> to erase the input.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Test the Monitor</div><div class="panel-badge">TRY IT LIVE</div></div>
+      <div class="input-group"><label class="input-label">Type anything here (try typing "otp" or "password")</label>
+        <input type="text" id="test-input" placeholder="Start typing...">
+      </div>
+      <div class="input-group"><label class="input-label">Test Area 2</label>
+        <textarea id="test-area" rows="4" placeholder="Type here too..."></textarea>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Monitored Keywords</div></div>
+      <div class="email-tags">
+        <span class="tag red">OTP</span><span class="tag red">PASSWORD</span><span class="tag red">CVV</span>
+        <span class="tag red">CARD NUMBER</span><span class="tag red">PIN</span><span class="tag red">AADHAR</span>
+        <span class="tag red">SSN</span><span class="tag red">ACCOUNT NUMBER</span>
+        <span class="tag yellow">BANK</span><span class="tag yellow">CREDIT</span><span class="tag yellow">DEBIT</span>
+        <span class="tag yellow">SECRET</span><span class="tag yellow">PRIVATE KEY</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOICE MONITOR -->
+  <div id="voice" class="page">
+    <div class="page-header"><div><div class="page-title">Voice Monitor</div><div class="page-subtitle">AUDIO THREAT DETECTION</div></div></div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Live Microphone Analysis</div><div class="panel-badge" id="voice-status-badge">INACTIVE</div></div>
+      <div class="voice-viz" id="voice-viz">
+        <div class="bar" style="animation-delay:0s"></div><div class="bar" style="animation-delay:0.1s"></div>
+        <div class="bar" style="animation-delay:0.2s"></div><div class="bar" style="animation-delay:0.3s"></div>
+        <div class="bar" style="animation-delay:0.4s"></div><div class="bar" style="animation-delay:0.5s"></div>
+        <div class="bar" style="animation-delay:0.6s"></div><div class="bar" style="animation-delay:0.7s"></div>
+        <div class="bar" style="animation-delay:0.8s"></div><div class="bar" style="animation-delay:0.9s"></div>
+        <div class="bar" style="animation-delay:1.0s"></div><div class="bar" style="animation-delay:1.1s"></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="startVoice()" id="voice-btn">◉ Start Monitoring</button>
+        <button class="btn btn-danger" onclick="stopVoice()" id="voice-stop" style="display:none">⬛ Stop</button>
+      </div>
+      <div style="margin-top:14px"><div class="input-label" style="margin-bottom:6px">TRANSCRIPT</div>
+        <div class="voice-transcript" id="voiceRes">Waiting for audio input...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSWORD LAB -->
+  <div id="password" class="page">
+    <div class="page-header"><div><div class="page-title">Password Lab</div><div class="page-subtitle">STRENGTH ANALYSIS & GENERATOR</div></div></div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Password Analyzer</div></div>
+      <div class="input-group"><label class="input-label">Enter Password</label>
+        <input type="text" id="pw-input" placeholder="Type your password to analyze..." oninput="analyzePassword(this.value)">
+      </div>
+      <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-bar"></div></div>
+      <div id="pw-label" style="font-family:'Share Tech Mono';font-size:12px;margin-top:6px;color:var(--text2)">Enter a password above</div>
+      <div class="pw-tips" id="pw-tips"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Password Generator</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+        <label style="font-size:12px;color:var(--text2)">Length: <input type="text" id="pw-len" value="16" style="width:50px;display:inline;padding:4px 8px;font-size:12px"></label>
+        <label style="font-size:12px;color:var(--text2)"><input type="checkbox" id="pw-sym" checked> Symbols</label>
+        <label style="font-size:12px;color:var(--text2)"><input type="checkbox" id="pw-num" checked> Numbers</label>
+      </div>
+      <button class="btn btn-primary" onclick="generatePassword()">⚙ Generate Password</button>
+      <div id="pw-gen-result" style="margin-top:10px;font-family:'Share Tech Mono';font-size:15px;color:var(--accent);background:rgba(0,255,229,0.04);border:1px solid rgba(0,255,229,0.15);border-radius:8px;padding:12px;display:none;word-break:break-all;letter-spacing:1px"></div>
+    </div>
+  </div>
+
+  <!-- EMAIL ANALYZER -->
+  <div id="email" class="page">
+    <div class="page-header"><div><div class="page-title">Email Analyzer</div><div class="page-subtitle">PHISHING DETECTION ENGINE</div></div></div>
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Phishing Email Detector</div><div class="panel-badge">AI PATTERN MATCH</div></div>
+      <div class="input-group"><label class="input-label">Paste Email Content</label>
+        <textarea id="email-content" rows="8" placeholder="Paste full email content including subject, sender, and body..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="analyzeEmail()">⌖ Analyze for Phishing</button>
+      <div id="email-result"></div>
+    </div>
+  </div>
+
+  <!-- REMEDY ENGINE -->
+  <div id="remedy" class="page">
+    <div class="page-header"><div><div class="page-title">Remedy Engine</div><div class="page-subtitle">INCIDENT RESPONSE PLAYBOOK</div></div></div>
+    <div id="remedyBox"><div class="no-remedy">▸ NO INCIDENTS RECORDED — SYSTEM SECURE</div></div>
+  </div>
+
+  <!-- CYBER HYGIENE -->
+  <div id="hygiene" class="page">
+    <div class="page-header"><div><div class="page-title">Cyber Hygiene</div><div class="page-subtitle">BEST PRACTICES & PROTOCOLS</div></div></div>
+    <div class="hygiene-grid">
+      <div class="hygiene-card do-card">
+        <h4>✓ DO's</h4>
+        <ul>
+          <li>Use strong, unique passwords for every account</li>
+          <li>Enable two-factor authentication everywhere</li>
+          <li>Verify URLs before entering credentials</li>
+          <li>Keep all software and OS updated</li>
+          <li>Use a password manager</li>
+          <li>Back up data regularly</li>
+          <li>Use HTTPS websites only</li>
+          <li>Check sender email domains carefully</li>
+          <li>Log out from public computers</li>
+          <li>Monitor bank statements regularly</li>
+        </ul>
+      </div>
+      <div class="hygiene-card dont-card">
+        <h4>✕ DON'Ts</h4>
+        <ul>
+          <li>Never share OTPs with anyone, ever</li>
+          <li>Don't click links in unsolicited emails</li>
+          <li>Don't reuse passwords across sites</li>
+          <li>Never use public WiFi for banking</li>
+          <li>Don't ignore security update prompts</li>
+          <li>Never download from unknown sources</li>
+          <li>Don't share personal info on social media</li>
+          <li>Never store passwords in plain text</li>
+          <li>Don't trust urgent "act now" messages</li>
+          <li>Never scan unknown QR codes blindly</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="panel-header"><div class="panel-title">Security Quiz</div><div class="panel-badge">TEST YOUR KNOWLEDGE</div></div>
+      <div id="quiz-area">
+        <div id="quiz-q" style="font-size:14px;color:var(--text);margin-bottom:12px;line-height:1.5"></div>
+        <div id="quiz-opts" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+        <div id="quiz-result" style="margin-top:10px;font-family:'Share Tech Mono';font-size:12px;display:none"></div>
+        <div style="margin-top:12px;display:flex;gap:10px">
+          <button class="btn btn-primary btn-sm" onclick="nextQuestion()">Next Question →</button>
+          <div style="font-family:'Share Tech Mono';font-size:12px;color:var(--text2);display:flex;align-items:center" id="quiz-score-disp">Score: 0 / 0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end .main -->
+
+<!-- Typing Monitor Bar -->
+<div id="typing-monitor-bar">
+  <div class="tm-dot" id="tm-dot"></div>
+  <div class="tm-label">KEYBOARD GUARD</div>
+  <div class="tm-status" id="tm-status">ACTIVE — MONITORING ALL INPUTS</div>
+  <div class="tm-buffer" id="tm-buffer"></div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let secScore=100, susCount=0, danCount=0, scanCount=0;
+let remedyLog=[], alertCount=0;
+let voiceRec=null, voiceActive=false;
+let overrideMode=false;
+let currentTarget=null;
+let quizScore=0, quizTotal=0, quizIdx=0;
+
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+function updateClock(){
+  const now=new Date();
+  document.getElementById('live-time').textContent=now.toLocaleTimeString('en-GB',{hour12:false})+' · '+now.toLocaleDateString('en-GB');
+}
+setInterval(updateClock,1000); updateClock();
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(a=>a.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+function updateStats(){
+  document.getElementById('score').textContent=Math.max(0,secScore);
+  document.getElementById('sus').textContent=susCount;
+  document.getElementById('dan').textContent=danCount;
+  document.getElementById('scans').textContent=scanCount;
+  document.getElementById('threat-score-val').innerHTML=Math.max(0,secScore)+' <span>/ 100</span>';
+  const pct=Math.max(0,(100-secScore));
+  document.getElementById('threat-fill').style.width=pct+'%';
+  const sc=document.getElementById('score');
+  if(secScore>80){sc.className='stat-val c-safe';}
+  else if(secScore>50){sc.className='stat-val c-warn';}
+  else{sc.className='stat-val c-danger';}
+}
+
+// ─── ALERTS ──────────────────────────────────────────────────────────────────
+function addAlert(type,msg){
+  const container=document.getElementById('alerts');
+  const empties=container.querySelectorAll('.empty-state');
+  empties.forEach(e=>e.remove());
+  alertCount++;
+  document.getElementById('alert-count').textContent=alertCount+' event'+(alertCount!==1?'s':'');
+  const t=new Date().toLocaleTimeString('en-GB',{hour12:false});
+  const div=document.createElement('div');
+  let cls='safe-item',tcls='t-safe';
+  if(type==='SUSPICIOUS'){cls='warn-item';tcls='t-warn';}
+  if(type==='DANGER'){cls='danger-item';tcls='t-danger';}
+  div.className='alert-item '+cls;
+  div.innerHTML=`<div class="alert-time">${t}</div><div class="alert-type ${tcls}">${type}</div><div class="alert-msg">${msg}</div>`;
+  container.prepend(div);
+  // Show badges
+  if(type==='DANGER'){
+    document.getElementById('rem-badge').classList.add('show');
+    document.getElementById('scan-badge').classList.add('show');
+    buildRemedy(msg,t);
+  }
+}
+
+function clearAlerts(){
+  document.getElementById('alerts').innerHTML='<div class="empty-state">▸ NO ALERTS RECORDED — SYSTEM SECURE</div>';
+  alertCount=0;
+  document.getElementById('alert-count').textContent='0 events';
+}
+
+function buildRemedy(incident,time){
+  const steps=[
+    'Stop sharing information immediately and close suspicious tabs.',
+    'Change the password of affected account(s) immediately.',
+    'Contact your bank or service provider if financial data is involved.',
+    'Enable two-factor authentication on all critical accounts.',
+    'Monitor your accounts and statements for any suspicious activity.',
+    'File a cybercrime complaint if you believe fraud has occurred.'
+  ];
+  let html=`<div class="remedy-card"><h4>⚕ INCIDENT: ${incident}</h4><div style="font-family:'Share Tech Mono';font-size:10px;color:var(--text2);margin-bottom:12px">DETECTED AT ${time}</div>`;
+  steps.forEach((s,i)=>{
+    html+=`<div class="remedy-step"><div class="remedy-num">${i+1}</div><div class="remedy-text">${s}</div></div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('remedyBox').innerHTML=html;
+}
+
+// ─── URL SCANNER ─────────────────────────────────────────────────────────────
+function scanURL(){
+  const u=document.getElementById('url').value.trim().toLowerCase();
+  if(!u){showResult('urlRes','warn','Please enter a URL to scan.');return;}
+  scanCount++;
+  const highRisk=['otp','verify','bank','login','free-gift','bonus','lucky-winner','urgent','claim','reward','suspend','limited'];
+  const medRisk=['account','update','security','access','confirm'];
+  const hCount=highRisk.filter(x=>u.includes(x)).length;
+  const mCount=medRisk.filter(x=>u.includes(x)).length;
+  if(hCount>=2){
+    showResult('urlRes','danger','⛔ HIGH RISK — Multiple phishing patterns detected');
+    secScore-=15;danCount++;addAlert('DANGER','Dangerous URL: '+u.substring(0,60));
+  }else if(hCount===1||mCount>=2){
+    showResult('urlRes','warn','⚠ SUSPICIOUS — Proceed with extreme caution');
+    secScore-=5;susCount++;addAlert('SUSPICIOUS','Suspicious URL: '+u.substring(0,60));
+  }else{
+    showResult('urlRes','safe','✓ SAFE — No phishing patterns detected');
+    addAlert('SAFE','URL scanned clean: '+u.substring(0,60));
+  }
+  updateStats();
+}
+
+// ─── CONTENT SCANNER ─────────────────────────────────────────────────────────
+function scanContent(){
+  const t=document.getElementById('content').value.toLowerCase();
+  if(!t.trim()){showResult('contentRes','warn','Please paste content to scan.');return;}
+  scanCount++;
+  const danger=['otp','password','cvv','card number','pin','aadhar','ssn','bank account'];
+  const warn=['urgent','verify','click here','limited time','congratulations','you have won','wire transfer'];
+  const dFound=danger.filter(x=>t.includes(x));
+  const wFound=warn.filter(x=>t.includes(x));
+  if(dFound.length>0){
+    showResult('contentRes','danger','⛔ SENSITIVE DATA FOUND — Keywords: '+dFound.join(', '));
+    secScore-=10;danCount++;addAlert('DANGER','Sensitive content: '+dFound.join(', '));
+  }else if(wFound.length>=2){
+    showResult('contentRes','warn','⚠ PHISHING INDICATORS — Suspicious phrases detected: '+wFound.slice(0,3).join(', '));
+    secScore-=5;susCount++;addAlert('SUSPICIOUS','Phishing indicators in content');
+  }else{
+    showResult('contentRes','safe','✓ CONTENT SAFE — No threats detected');
+  }
+  updateStats();
+}
+
+function showResult(id,cls,msg){
+  const icons={safe:'✓',warn:'⚠',danger:'⛔'};
+  document.getElementById(id).innerHTML=`<div class="result-banner ${cls}">${icons[cls]||''} ${msg}</div>`;
+}
+
+// ─── KEYBOARD MONITOR ────────────────────────────────────────────────────────
+const SENSITIVE_PATTERNS=[
+  {pattern:/otp/i,label:'OTP'},
+  {pattern:/password/i,label:'Password'},
+  {pattern:/passcode/i,label:'Passcode'},
+  {pattern:/cvv/i,label:'CVV'},
+  {pattern:/card\s*number/i,label:'Card Number'},
+  {pattern:/\bpin\b/i,label:'PIN'},
+  {pattern:/aadhar/i,label:'Aadhar Number'},
+  {pattern:/\bssn\b/i,label:'SSN'},
+  {pattern:/account\s*number/i,label:'Account Number'},
+  {pattern:/private\s*key/i,label:'Private Key'},
+  {pattern:/secret/i,label:'Secret Key'},
+];
+
+let warningActive=false;
+let lastCheckedLen=0;
+
+document.addEventListener('input',function(e){
+  if(warningActive||overrideMode) return;
+  const el=e.target;
+  if(!['INPUT','TEXTAREA'].includes(el.tagName)) return;
+  const val=el.value;
+  for(const sp of SENSITIVE_PATTERNS){
+    if(sp.pattern.test(val)){
+      triggerKMWarning(sp.label,el);
+      return;
+    }
+  }
+  // Update monitor bar
+  updateMonitorBar('safe','MONITORING — NO THREATS DETECTED',val.substring(val.length-30));
+},true);
+
+function triggerKMWarning(label,el){
+  warningActive=true;
+  currentTarget=el;
+  document.getElementById('km-keyword').textContent=label;
+  document.getElementById('km-overlay').style.display='flex';
+  secScore-=5; danCount++;
+  addAlert('DANGER','Sensitive keyword typed: '+label);
+  updateStats();
+  updateMonitorBar('danger','⛔ THREAT DETECTED — '+label.toUpperCase(),'');
+}
+
+function overrideSensitive(){
+  overrideMode=true;
+  warningActive=false;
+  document.getElementById('km-overlay').style.display='none';
+  updateMonitorBar('warn','OVERRIDE ACTIVE — MONITORING PAUSED','');
+  setTimeout(()=>{overrideMode=false;updateMonitorBar('safe','MONITORING RESTORED','');},30000);
+}
+
+function dismissWarning(){
+  warningActive=false;
+  document.getElementById('km-overlay').style.display='none';
+  if(currentTarget){currentTarget.value='';currentTarget.focus();}
+  updateMonitorBar('safe','INPUT CLEARED — SYSTEM SECURE','');
+}
+
+function updateMonitorBar(level,status,buf){
+  const dot=document.getElementById('tm-dot');
+  const st=document.getElementById('tm-status');
+  dot.className='tm-dot'+(level==='warn'?' warn':level==='danger'?' danger':'');
+  st.style.color=level==='danger'?'var(--danger)':level==='warn'?'var(--warn)':'var(--safe)';
+  st.textContent=status;
+  if(buf) document.getElementById('tm-buffer').textContent='…'+buf;
+}
+
+// ─── VOICE MONITOR ───────────────────────────────────────────────────────────
+function startVoice(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    document.getElementById('voiceRes').textContent='Speech recognition not supported in this browser.';return;
+  }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  voiceRec=new SR(); voiceRec.continuous=true; voiceRec.interimResults=true;
+  voiceRec.onresult=function(e){
+    let txt='';
+    for(let i=e.resultIndex;i<e.results.length;i++) txt+=e.results[i][0].transcript;
+    document.getElementById('voiceRes').textContent=txt;
+    const tl=txt.toLowerCase();
+    if(tl.includes('otp')||tl.includes('password')||tl.includes('account number')||tl.includes('cvv')){
+      secScore-=10;danCount++;addAlert('DANGER','Sensitive data spoken aloud');updateStats();
+      showVoiceWarning();
+    }
+  };
+  voiceRec.start(); voiceActive=true;
+  document.getElementById('voice-viz').classList.add('voice-active');
+  document.getElementById('voice-status-badge').textContent='ACTIVE';
+  document.getElementById('voice-btn').style.display='none';
+  document.getElementById('voice-stop').style.display='';
+}
+
+function stopVoice(){
+  if(voiceRec) voiceRec.stop();
+  voiceActive=false;
+  document.getElementById('voice-viz').classList.remove('voice-active');
+  document.getElementById('voice-status-badge').textContent='INACTIVE';
+  document.getElementById('voice-btn').style.display='';
+  document.getElementById('voice-stop').style.display='none';
+}
+
+function showVoiceWarning(){
+  const w=document.createElement('div');
+  w.className='result-banner danger';
+  w.style.position='fixed';w.style.top='20px';w.style.right='20px';w.style.zIndex='9997';
+  w.style.maxWidth='360px';w.style.boxShadow='0 8px 40px rgba(255,45,107,0.4)';
+  w.innerHTML='⛔ WARNING: Sensitive information detected in speech!';
+  document.body.appendChild(w);
+  setTimeout(()=>w.remove(),5000);
+}
+
+// ─── PASSWORD ANALYZER ───────────────────────────────────────────────────────
+function analyzePassword(pw){
+  const bar=document.getElementById('pw-bar');
+  const label=document.getElementById('pw-label');
+  const tips=document.getElementById('pw-tips');
+  if(!pw){bar.style.width='0%';label.textContent='Enter a password above';tips.innerHTML='';return;}
+  let score=0;
+  const checks=[
+    {test:pw.length>=8,text:'At least 8 characters'},
+    {test:pw.length>=12,text:'12+ characters (recommended)'},
+    {test:/[A-Z]/.test(pw),text:'Contains uppercase letter'},
+    {test:/[a-z]/.test(pw),text:'Contains lowercase letter'},
+    {test:/[0-9]/.test(pw),text:'Contains number'},
+    {test:/[^A-Za-z0-9]/.test(pw),text:'Contains special character'},
+    {test:!/(.)\1{2}/.test(pw),text:'No repeated characters'},
+  ];
+  score=checks.filter(c=>c.test).length;
+  const pct=Math.round((score/checks.length)*100);
+  bar.style.width=pct+'%';
+  const colors=['#ff2d6b','#ff2d6b','#ff9d00','#ff9d00','#ffe500','#ffe500','#00ff9d'];
+  const labels=['Very Weak','Weak','Fair','Fair','Good','Strong','Very Strong'];
+  bar.style.background=colors[score-1]||'#ff2d6b';
+  label.textContent=`Strength: ${labels[score-1]||'Too Short'} (${pct}%)`;
+  label.style.color=colors[score-1]||'#ff2d6b';
+  tips.innerHTML=checks.map(c=>`<div class="pw-tip ${c.test?'ok':'fail'}">${c.test?'✓':'○'} ${c.text}</div>`).join('');
+}
+
+function generatePassword(){
+  const len=parseInt(document.getElementById('pw-len').value)||16;
+  const useSym=document.getElementById('pw-sym').checked;
+  const useNum=document.getElementById('pw-num').checked;
+  let chars='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if(useNum) chars+='0123456789';
+  if(useSym) chars+='!@#$%^&*()_+-=[]{}|;:,.<>?';
+  let pw='';
+  for(let i=0;i<len;i++) pw+=chars[Math.floor(Math.random()*chars.length)];
+  const el=document.getElementById('pw-gen-result');
+  el.style.display='block';
+  el.innerHTML=pw+'<button class="btn btn-sm btn-safe" style="margin-left:12px" onclick="copyPW(\''+pw+'\')">Copy</button>';
+  analyzePassword(pw);
+  document.getElementById('pw-input').value=pw;
+}
+
+function copyPW(pw){
+  navigator.clipboard.writeText(pw).then(()=>{
+    const el=document.getElementById('pw-gen-result');
+    const orig=el.innerHTML;
+    el.innerHTML='✓ Copied to clipboard!';
+    setTimeout(()=>{el.innerHTML=orig;},1500);
+  });
+}
+
+// ─── EMAIL ANALYZER ──────────────────────────────────────────────────────────
+function analyzeEmail(){
+  const t=document.getElementById('email-content').value.toLowerCase();
+  if(!t.trim()){showEmailResult('warn','Please paste email content first.');return;}
+  scanCount++;
+  const phishingPatterns=[
+    {kw:'urgent',label:'Urgency language',score:2},
+    {kw:'verify your account',label:'Account verification request',score:3},
+    {kw:'click here',label:'Generic click-here link',score:2},
+    {kw:'limited time',label:'Limited time pressure',score:2},
+    {kw:'congratulations',label:'Prize/congratulation lure',score:3},
+    {kw:'your account has been',label:'Account threat',score:3},
+    {kw:'dear customer',label:'Generic salutation',score:1},
+    {kw:'confirm your',label:'Confirmation request',score:2},
+    {kw:'otp',label:'OTP request',score:4},
+    {kw:'bank',label:'Bank mention',score:1},
+    {kw:'wire transfer',label:'Wire transfer mention',score:4},
+    {kw:'you have won',label:'Prize scam indicator',score:4},
+    {kw:'your password',label:'Password request',score:3},
+    {kw:'unusual activity',label:'Fear tactic',score:2},
+    {kw:'action required',label:'Action demand',score:2},
+  ];
+  const found=phishingPatterns.filter(p=>t.includes(p.kw));
+  const totalScore=found.reduce((a,p)=>a+p.score,0);
+  const resultDiv=document.getElementById('email-result');
+  let tags=found.map(p=>`<span class="tag ${p.score>=3?'red':p.score>=2?'yellow':'green'}">${p.label}</span>`).join('');
+  if(totalScore>=8){
+    resultDiv.innerHTML=`<div class="result-banner danger">⛔ HIGH PHISHING RISK (Score: ${totalScore})</div><div class="email-tags">${tags}</div>`;
+    secScore-=15;danCount++;addAlert('DANGER','High-risk phishing email analyzed');
+  }else if(totalScore>=3){
+    resultDiv.innerHTML=`<div class="result-banner warn">⚠ SUSPICIOUS EMAIL (Score: ${totalScore})</div><div class="email-tags">${tags}</div>`;
+    secScore-=5;susCount++;addAlert('SUSPICIOUS','Suspicious email analyzed');
+  }else{
+    resultDiv.innerHTML=`<div class="result-banner safe">✓ APPEARS CLEAN — Low threat score (${totalScore})</div>`;
+  }
+  updateStats();
+}
+
+function showEmailResult(cls,msg){
+  document.getElementById('email-result').innerHTML=`<div class="result-banner ${cls}">${msg}</div>`;
+}
+
+// ─── QUIZ ─────────────────────────────────────────────────────────────────────
+const questions=[
+  {q:'You receive an email asking for your OTP. What should you do?',opts:['Provide it quickly','Ignore and delete','Call the sender','Ask for more info'],ans:1},
+  {q:'Which password is strongest?',opts:['password123','P@ssw0rd','Xk#9mL!q2nR','ilovemydog'],ans:2},
+  {q:'What does 2FA stand for?',opts:['Two Factor Authentication','Two File Access','Two Form Address','Timed File Activation'],ans:0},
+  {q:'You see https:// in a URL. This means?',opts:['It\'s a government site','The connection is encrypted','It\'s definitely safe','It\'s a phishing site'],ans:1},
+  {q:'Which is a sign of a phishing email?',opts:['Personalized content','Urgency & threats','Clear branding','Reply option'],ans:1},
+  {q:'How often should you update important passwords?',opts:['Never','Every 5 years','Every 3-6 months','Only if hacked'],ans:2},
+  {q:'What should you do on public WiFi?',opts:['Online banking only','Avoid sensitive logins','Share passwords','Download files'],ans:1},
+  {q:'What is a CVV?',opts:['Bank account code','Card verification value','Credit vault value','Customer validity value'],ans:1},
+];
+
+function loadQuestion(){
+  const q=questions[quizIdx%questions.length];
+  document.getElementById('quiz-q').textContent=(quizIdx+1)+'. '+q.q;
+  document.getElementById('quiz-result').style.display='none';
+  const optsDiv=document.getElementById('quiz-opts');
+  optsDiv.innerHTML=q.opts.map((o,i)=>
+    `<button class="btn btn-sm" style="background:rgba(0,255,229,0.06);border:1px solid rgba(0,255,229,0.15);color:var(--text);font-family:'Exo 2';font-size:12px;letter-spacing:0;text-transform:none" onclick="answerQ(${i})">${o}</button>`
+  ).join('');
+}
+
+function answerQ(idx){
+  const q=questions[quizIdx%questions.length];
+  quizTotal++;
+  const res=document.getElementById('quiz-result');
+  res.style.display='block';
+  if(idx===q.ans){
+    quizScore++;
+    res.style.color='var(--safe)';
+    res.textContent='✓ Correct! '+['Well done!','Excellent!','Right answer!','Perfect!'][Math.floor(Math.random()*4)];
+  }else{
+    res.style.color='var(--danger)';
+    res.textContent='✕ Incorrect. The correct answer was: '+q.opts[q.ans];
+  }
+  document.getElementById('quiz-score-disp').textContent=`Score: ${quizScore} / ${quizTotal}`;
+}
+
+function nextQuestion(){
+  quizIdx++;
+  loadQuestion();
+}
+
+loadQuestion();
+
+// ─── PARTICLE BACKGROUND ─────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById('particle-bg');
+  const ctx=c.getContext('2d');
+  let particles=[];
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  resize(); window.addEventListener('resize',resize);
+  for(let i=0;i<60;i++) particles.push({x:Math.random()*c.width,y:Math.random()*c.height,vx:(Math.random()-0.5)*0.3,vy:(Math.random()-0.5)*0.3,r:Math.random()*1.5+0.5,a:Math.random()});
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    particles.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=c.width; if(p.x>c.width)p.x=0;
+      if(p.y<0)p.y=c.height; if(p.y>c.height)p.y=0;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(0,255,229,${p.a*0.6})`;ctx.fill();
+    });
+    // Draw connections
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<100){
+          ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle=`rgba(0,255,229,${0.08*(1-d/100)})`;ctx.lineWidth=0.5;ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// Init
+updateStats();
+</script>
+</body>
+</html>
